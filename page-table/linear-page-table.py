@@ -3,6 +3,21 @@ from math import log
 from time import sleep
 import random
 
+def informacoes():
+    print(chr(27) + "[2J")
+    print(" Iremos abstrair os metadados utilizados, ou seja:\n",
+          "Nossa PageTable irá ter o bit mais signicativo p/\n",
+          "representar se está na memória (1) ou se esta em \n",
+          "disco (0), e os bits menos significativos irão re-\n",
+          "-presentar o endereço do PageFrame\n")
+    print("OBS: Não é assim que as máquinas representam, porém\n",
+          "para fins didáticos, vamos representar nesse esquema:")
+    print("PTE X: [Dirty Bit], [PFN]")
+    ok = input("\nDigite 'ok' para continuar, ou digite qualquer coisa para sair\n")
+    if (ok != "ok"): exit()
+    print(chr(27) + "[2J")
+
+    
 def aleatorio(lista):
     indice = random.randint(0, len(lista)-1)
     result = lista[indice]
@@ -24,40 +39,62 @@ def mostrar_todo_mapeamento(page_table, virt_adresses, page_size):
         res += (f"VAN: {i[0]} | PTE: {pte} | PFN: {page_table[pte]} | PA: {i[1]}")
     return res    
 
+def fim(page_table, virt_adresses, page_size):
+    print("\nTodos endereços foram traduzidos!\n",
+          "Digite a opção desejada:\n",
+          "[1] Mostrar PT\n",
+          "[2] Mostar todo mapeamento\n",
+          "[X] Sair\n")
+    escolha = input()
+    if (escolha == 1):
+        print(mostrar_toda_pt(page_table))
+        fim(page_table, virt_adresses, page_size)
+    elif (escolha == 2):
+        print(mostrar_todo_mapeamento(page_table, virt_adresses, page_size))
+        fim(page_table, virt_adresses, page_size)
+        
+
+def recupera_disco(pte_table, virt_adresses, v_addr, pte):
+        pte_table[pte][0] = 1
+        offset = v_addr % tamanho_pagina
+        # adiciono 6 bits no final
+        pfn_base = pte_table[pte][1]
+        endereco_fisico = (pfn_base * tamanho_pagina) + offset
+        virt_adresses[v_addr][1] = endereco_fisico
+
 # Maquina com X bits
-qtd_virt_adress = 2 ** (int(input("Qual o tamanho em bits da sua máquina? ")))
+print("# Exemplo: 16KB = 2^14, então é uma máquina de 14 bits")
+print("# obs: muitos bits = maior a espera")
+qtd_virt_adress = 2 ** (int(input("Qual o tamanho em BITS da sua máquina?\n")))
 virt_adresses = [[x, []] for x in range(qtd_virt_adress)]
 
 # tamanho em bytes 
-tamanho_pagina = (int(input("Qual o tamanho em Bytes de UMA página? ")))
+print()
+tamanho_pagina = (int(input("Qual o tamanho em BYTES de UMA página nessa máquina?\n")))
 
 # calculo da quantidade total de bytes
 qtd_paginas = qtd_virt_adress // tamanho_pagina
 
 minimo_bits = log(ceil(qtd_paginas / 8), 2)
+print("\n# Pergunta 1")
 print("Quantos bits é necessário para representar sua PTE? ")
 if (int(input()) < minimo_bits):
-    print(f"Errado... Precisamos de pelo menos {minimo_bits} bits!\n")
+    print(f"Errado... Precisamos de no MÍNIMO {minimo_bits} bits!\n")
 else:
-    print("Correto!\n")
+    print("Correto!")
 
-print("Vamos considerar que nossa PTE é de 4 bytes, qual seu tamanho? ")
+print("\n# Pergunta 2")
+print("Para fins didáticos, estamos considerando que cada PTE tem tamanho de 4 Bytes")
+print("Assim, qual o tamanho da PageTable?")
 tamanho_pt = qtd_paginas * 4
 if (int(input()) != tamanho_pt):
     print(f"Errado... nossa PageTable tem tamanho total de {tamanho_pt} Bytes\n")
 else:
     print("Correto!")
+sleep(2)
+informacoes()
 
 pfn_number = [x for x in range(qtd_paginas)]
-
-print("Iremos abstrair os metadados utilizados, ou seja:\n",
-      "Nossa PageTable irá ter o bit mais signicativo p/\n",
-      "representar se está na memória (1) ou se esta em \n",
-      "disco (0), e os bits menos significativos irão re-\n",
-      "-presentar o endereço do PageFrame\n")
-print("OBS: Não é assim que as máquinas representam, porém\n",
-      "para fins didáticos, vamos representar nesse esquema:")
-print("PTE X: [Dirty Bit], [PFN]")     
       
 # gerando uma PT onde armazena PTE de 4 bytes
 pte_table = {}
@@ -70,16 +107,7 @@ for i in range(qtd_paginas):
         temp_bytes.append(0)
         temp_bytes.append("DISCO")
     pte_table[i] = temp_bytes
-print(pte_table)
 
-
-def recupera_disco(pte_table, virt_adresses, v_addr, pte):
-        pte_table[pte][0] = 1
-        offset = v_addr % tamanho_pagina
-        # adiciono 6 bits no final
-        pfn_base = pte_table[pte][1]
-        endereco_fisico = (pfn_base * tamanho_pagina) + offset
-        virt_adresses[v_addr][1] = endereco_fisico
 
 # "MMU"
 for i in range(qtd_virt_adress):
@@ -91,17 +119,17 @@ for i in range(qtd_virt_adress):
         virt_adresses[i][1] = "DISK"
 
 print("Vamos começar o exercício:\n")
-print(  (f"Máquina de {qtd_virt_adress} endereços\n"),
-        (f"Cada página tem {tamanho_pagina} endereços\n"), 
-        "\n1- Você irá digitar quantas endereços virtuais deseja traduzir\n",
-        "2- Após isso irá ser sorteado um número entre 0 e (2^16)-1 para traduzir\n",
+print((f"Dado uma Máquina de {qtd_virt_adress} endereços\n"),
+        (f"onde cada página tem {tamanho_pagina} endereços\n"), 
+        "1- Você irá digitar quantas endereços virtuais deseja traduzir\n",
+        (f"2- Após isso irá ser sorteado um número entre 0 e {qtd_virt_adress}-1 para traduzir\n"),
         "3- Após isso, acesse a PT quantas vezes quiser para ver qual endereço de uma certa PTE\n",
-        "   3A - Se o endereço estiver no DISCO aparecerá DISK, e você pode digitar RECUPERAR para recuperar ele da memória secundária",
-        "   3B - ou digitar qualquer coisa para ver outra PTE",
-        "OBS: Finja que é a MMU, se acessar a PTE errada, sua tradução vai ficar errada\n",
+        "   3A - Se o endereço estiver no DISCO aparecerá DISK, e você pode digitar RECUPERAR para recuperar ele da memória secundária\n",
+        "   3B - ou digitar qualquer coisa para ver outra PTE\n",
+        "OBS: Finja que VOCÊ é a MMU, se acessar a PTE errada, sua tradução vai ficar errada\n",
         "4- Quando terminar a tradução digite 'next', isso irá te mostrar o mapeamento correto\n",
         "5- Após, traduzir todos endereços desejados, você terá as opções:\n",
-        "   5A - Mostrar a PT,\n",
+        "   5A - Mostrar toda a PT,\n",
         "   5B - Mostrar todos endereços virtuais mapeados,\n",
         "   5C - Sair\n")
 
@@ -128,4 +156,7 @@ while (calculo > 0):
             pte = input("Qual a próxima PTE gostaria de olhar? (ou 'next' para finalizar)\n")
     print("O mapeamento correto é: ")
     print(f"endereco virtual: {endereco_vitual} -> endereço fisico: {virt_adresses[endereco_vitual][1]}")
-    calculo -= 1    
+    calculo -= 1
+
+# TODO: fix 'fim'
+# fim(pte_table, virt_adresses, tamanho_pagina)
