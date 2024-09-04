@@ -13,7 +13,6 @@ tamanho_pt = math.ceil(quantidade_pages * (2 ** 2))
 print(f"quantidade de pages (v_adrress): {quantidade_pages}")
 print(f"tamanho da page_table: {tamanho_pt}")
 
-solve_qtd = int(input("Quantos endereços gostaria de traduzir? "))
 
 bits_page_table = math.ceil(math.log(page_bytes, 2))
 print(f"bits utilizados para representar a pt: {bits_page_table}")
@@ -30,6 +29,7 @@ print(f"bits para representar meu page_directory: {bits_page_directory}")
 page_directory = {}
 page_table = {}
 
+solve_qtd = int(input("Quantos endereços gostaria de traduzir? "))
 while (solve_qtd > 0):
     virtual_address = random.randint(0, (2**bits_maquina) - 1)
     print(f"traduza o endereço virtual {virtual_address}")
@@ -45,13 +45,20 @@ while (solve_qtd > 0):
     page_table[page_directory[pd_id] + page_offset] = random.randint(0, 2**(bits_maquina - bits_page_size))
 
     physical_adress = page_table[page_directory[pd_id] + page_offset] + (virtual_address % page_bytes)
-    print(f"Endereço virtual: {virtual_address} está mapeado para o endereço físico {physical_adress}")
 
     # solve 
-    #while(input("Olhe sua PD ou digite FIM para sair: ") != "FIM"):
-    print(f"O seu PD_ID é {pd_id}")
-    print(f"O PD mapeia para a PT {page_directory[pd_id]}")
-    print(f"Sua PT + PageOffset guarda {page_table[page_directory[pd_id] + page_offset]}")
-    #continue
+    resposta = input("Olhe sua PD ou digite FIM para sair: ")
+    while(resposta != "FIM"):
+        if resposta == "A":
+            print(f"O seu PD_ID é {pd_id}")
+        if resposta == "B":
+            print(f"O PD mapeia para a PT {page_directory[pd_id]}")
+        if resposta == "C":
+            print(f"Sua PT + PageOffset guarda {page_table[page_directory[pd_id] + page_offset]}")
+        
+        resposta = input("Digite 'A' pra ver o PageDirect, 'B' para ver a PageTableMapeada,\n'C' pra ver o que a PTE guarda ou 'FIM' para ver a resposta\n")
+        continue
 
+    print(f"Endereço virtual: {virtual_address} está mapeado para o endereço físico {physical_adress}")
+    
     solve_qtd -= 1
