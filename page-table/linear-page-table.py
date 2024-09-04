@@ -25,18 +25,16 @@ def aleatorio(lista):
     return result
 
 def mostrar_toda_pt(page_table):
-    res = ""
-    keys = page_table.keys()
-    keys.sort()
+    res = ""    
     for k in page_table:
         res += (f"PTE {k} | PFN:{page_table[k]}\n")
     return res
 
 def mostrar_todo_mapeamento(page_table, virt_adresses, page_size):
     res = "VA = Virtual Adress | PTE = PageTableEntry | PFN = PageFrameNumber | PA = Physical Adress\n"
-    for i in virt_adresses:
-        pte = (i[0] // page_size)         
-        res += (f"VAN: {i[0]} | PTE: {pte} | PFN: {page_table[pte]} | PA: {i[1]}")
+    for i in virt_adresses.keys():
+        pte = (virt_adresses[i] // page_size)         
+        res += (f"VAN: {i} | PTE: {pte} | PFN: {page_table[pte]} | PA: {virt_adresses[i]}\n")
     return res    
 
 def fim(page_table, virt_adresses, page_size):
@@ -45,12 +43,16 @@ def fim(page_table, virt_adresses, page_size):
           "[1] Mostrar PT\n",
           "[2] Mostar todo mapeamento\n",
           "[X] Sair\n")
-    escolha = input()
+    escolha = int(input())
     if (escolha == 1):
         print(mostrar_toda_pt(page_table))
         fim(page_table, virt_adresses, page_size)
     elif (escolha == 2):
         print(mostrar_todo_mapeamento(page_table, virt_adresses, page_size))
+        fim(page_table, virt_adresses, page_size)
+    elif (escolha == 0):
+        exit()
+    else:
         fim(page_table, virt_adresses, page_size)
         
 
@@ -59,27 +61,27 @@ def recupera_disco(pte_table, virt_adresses, v_addr, pte):
         offset = v_addr % tamanho_pagina
         # adiciono 6 bits no final
         pfn_base = pte_table[pte][1]
-        endereco_fisico = (pfn_base * tamanho_pagina) + offset
-        virt_adresses[v_addr][1] = endereco_fisico
+        endereco_fisico = (int(pfn_base) * tamanho_pagina) + offset
+        virt_adresses[v_addr] = endereco_fisico
 
 # Maquina com X bits
 print("# Exemplo: 16KB = 2^14, então é uma máquina de 14 bits")
 print("# obs: muitos bits = maior a espera")
 qtd_virt_adress = 2 ** (int(input("Qual o tamanho em BITS da sua máquina?\n")))
-virt_adresses = [[x, []] for x in range(qtd_virt_adress)]
+# virt_adresses = [[x, []] for x in range(qtd_virt_adress)]
+virt_adresses = {}
 
 # tamanho em bytes 
-print()
 tamanho_pagina = (int(input("Qual o tamanho em BYTES de UMA página nessa máquina?\n")))
 
 # calculo da quantidade total de bytes
 qtd_paginas = qtd_virt_adress // tamanho_pagina
 
 minimo_bits = log(ceil(qtd_paginas / 8), 2)
-print("\n# Pergunta 1")
+print("# Pergunta 1")
 print("Quantos bits é necessário para representar sua PTE? ")
-if (int(input()) < minimo_bits):
-    print(f"Errado... Precisamos de no MÍNIMO {minimo_bits} bits!\n")
+if (int(input()) != minimo_bits):
+    print(f"Errado... Precisamos de no MÍNIMO {minimo_bits} bits!")
 else:
     print("Correto!")
 
@@ -88,16 +90,19 @@ print("Para fins didáticos, estamos considerando que cada PTE tem tamanho de 4 
 print("Assim, qual o tamanho da PageTable?")
 tamanho_pt = qtd_paginas * 4
 if (int(input()) != tamanho_pt):
-    print(f"Errado... nossa PageTable tem tamanho total de {tamanho_pt} Bytes\n")
+    print(f"Errado... nossa PageTable tem tamanho total de {tamanho_pt} Bytes")
 else:
     print("Correto!")
 sleep(2)
 informacoes()
 
+print("Isso pode demorar um pouco...")
 pfn_number = [x for x in range(qtd_paginas)]
-      
+print(chr(27) + "[2J")
+
 # gerando uma PT onde armazena PTE de 4 bytes
 pte_table = {}
+print("Isso pode demorar um pouco...")
 for i in range(qtd_paginas):
     temp_bytes = []
     if (random.randint(0,1) == 1):
@@ -107,16 +112,7 @@ for i in range(qtd_paginas):
         temp_bytes.append(0)
         temp_bytes.append("DISCO")
     pte_table[i] = temp_bytes
-
-
-# "MMU"
-for i in range(qtd_virt_adress):
-    v_addr = virt_adresses[i][0]
-    pte = v_addr // tamanho_pagina
-    if (pte_table[pte][0] == 1):
-        recupera_disco(pte_table, virt_adresses, v_addr, pte)
-    else:
-        virt_adresses[i][1] = "DISK"
+print(chr(27) + "[2J")
 
 print("Vamos começar o exercício:\n")
 print((f"Dado uma Máquina de {qtd_virt_adress} endereços\n"),
@@ -144,7 +140,7 @@ while (calculo > 0):
                 if ((input("Para recuperar digite 'RECUPERAR' ") == "RECUPERAR")):
                     pte_table[int(pte)][1] = aleatorio(pfn_number)
                     for i in range(0, tamanho_pagina - 1):
-                        recupera_disco(pte_table, virt_adresses, (i + (int(pte)*64)), int(pte))
+                        recupera_disco(pte_table, virt_adresses, (i + (int(pte)*tamanho_pagina)), int(pte))
                         
                     print("só pra mostrar que é lento:")
                     for i in range(3):
@@ -155,8 +151,11 @@ while (calculo > 0):
                     
             pte = input("Qual a próxima PTE gostaria de olhar? (ou 'next' para finalizar)\n")
     print("O mapeamento correto é: ")
-    print(f"endereco virtual: {endereco_vitual} -> endereço fisico: {virt_adresses[endereco_vitual][1]}")
+    pte_table[int(endereco_vitual//tamanho_pagina)][1] = aleatorio(pfn_number)
+    for i in range(0, tamanho_pagina):
+        recupera_disco(pte_table, virt_adresses, (i + (int(endereco_vitual//tamanho_pagina)*tamanho_pagina)), int(endereco_vitual//tamanho_pagina))
+    
+    print(f"endereco virtual: {endereco_vitual} -> endereço fisico: {virt_adresses[endereco_vitual]}")
     calculo -= 1
 
-# TODO: fix 'fim'
-# fim(pte_table, virt_adresses, tamanho_pagina)
+fim(pte_table, virt_adresses, tamanho_pagina)
